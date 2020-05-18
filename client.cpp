@@ -1,5 +1,5 @@
 #include <iostream>
-#include "rpclib-master/include/rpc/client.h"
+#include "rpc/client.h"
 
 int main() {
     // Creating a client that connects to the localhost on port 8080
@@ -7,6 +7,7 @@ int main() {
 
     // Calling a function with paramters and converting the result to int
     auto result = client.call("add", 2, 3).as<int>();
+    auto result_1 = client.call("foo");
     std::cout << "The result is: " << result << std::endl;
     return 0;
 }
