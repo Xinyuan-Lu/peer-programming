@@ -22,11 +22,7 @@ client.o: client.cpp
 	$(CC) -c client.cpp -o client.o
 
 librpc.a:
-	cd rpclib-master
-	cmake ./
-	make
-	cp librpc.a ../
-	cd ..
+	cd rpclib-master && cmake ./ && make && cp librpc.a ../ && cd ..
 clean:
 	rm -f *.o client server
 
@@ -34,4 +30,3 @@ push: clean
 	git add .
 	git commit -m "auto commit"
 	git push
-
