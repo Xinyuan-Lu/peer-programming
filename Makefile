@@ -2,7 +2,7 @@ UNAME := $(shell uname)
 ifeq ($(UNAME), Darwin)
 	OSCCFLAG = -stdlib=libc++ -std=c++14 
 else
-	OSCCFLAG = -std=c++14
+	OSCCFLAG = -std=c++14 -lpthread
 endif
 
 CC = g++ -Wall -Wextra -O2 $(OSCCFLAG) -I rpclib-master/include
