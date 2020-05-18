@@ -1,4 +1,11 @@
-CC = g++ -Wall -Wextra -O2 -stdlib=libc++ -std=c++14 -I rpclib-master/include
+UNAME := $(shell uname)
+ifeq ($(UNAME), Linux)
+	OSCCFLAG = -std=c++14
+else
+	OSCCFLAG = -stdlib=libc++ -std=c++14 
+endif
+
+CC = g++ -Wall -Wextra -O2 $(OSCCFLAG) -I rpclib-master/include
 
 all: client server 
 
@@ -22,3 +29,9 @@ librpc.a:
 	cd ..
 clean:
 	rm -f *.o client server
+
+push: clean
+	git add .
+	git commit -m "auto commit"
+	git push
+
