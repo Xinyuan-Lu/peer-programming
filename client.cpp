@@ -1,6 +1,8 @@
 #include <iostream>
 #include "rpc/client.h"
 #include <string>
+#include "json.hpp"
+
 
 int main() {
     // Creating a client that connects to the localhost on port 8080

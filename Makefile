@@ -1,25 +1,25 @@
 UNAME := $(shell uname)
 ifeq ($(UNAME), Darwin)
-	OSCCFLAG = -stdlib=libc++ -std=c++14 
+	OSCCFLAG = -stdlib=libc++  
 else
-	OSCCFLAG = -std=c++14 -pthread
+	OSCCFLAG = -pthread
 endif
 
-CC = g++ -Wall -Wextra -O2 $(OSCCFLAG) -I rpclib-master/include
+.PHONY: all clean push
+
+CC = g++ -Wall -Wextra -O2 -std=c++14 $(OSCCFLAG) -I rpclib-master/include
+
+.SUFFIXES: .cpp
+.cpp.o:
+	$(CC) -c $<
 
 all: client server 
 
-client: client.o librpc.a
-	$(CC) client.o librpc.a -o client
+client: client.o operation.o librpc.a
+	$(CC) $? -o $@
 
-server: server.o librpc.a
-	$(CC) server.o librpc.a -o server
-
-server.o: server.cpp
-	$(CC) -c server.cpp -o server.o
-
-client.o: client.cpp
-	$(CC) -c client.cpp -o client.o
+server: server.o operation.o librpc.a
+	$(CC) $? -o $@
 
 librpc.a:
 	cd rpclib-master && cmake ./ && make && cp librpc.a ../ && cd ..

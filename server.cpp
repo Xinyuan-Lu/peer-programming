@@ -1,26 +1,7 @@
 #include <iostream>
 #include "rpc/server.h"
 #include "json.hpp"
-
-using json = nlohmann::json;
-
-struct product {
-    int weight;
-    std::string edit;
-
-    product(int w, std::string e): weight(w), edit(e){}
-
-    std::string toString() {
-        auto j = json{{"weight", weight}, {"edit", edit}};
-        return j.dump();
-    }
-
-    void fromString(std::string inString){
-        auto j = json::parse(inString);
-        this->weight = j["weight"];
-        this->edit = j["edit"];
-    }
-};
+#include "operation.h"
 
 
 void foo() {
@@ -33,12 +14,12 @@ int main(int argc, char *argv[]) {
     // Creating a server that listens on port 8080
     rpc::server srv(8080);
     
-    product test(0, "Hello world");
+    operation test(operation::INSERT, 0, "Hello world");
     std::string i = test.toString();
-    product nTest(12121, "World Hello");
-    std::cout << nTest.edit << nTest.weight << std::endl;
+    operation nTest(operation::DELETE, 12121, "World Hello");
+    std::cout << nTest.opcode << nTest.pos << nTest.context << std::endl;
     nTest.fromString(i);
-    std::cout << nTest.edit << nTest.weight << std::endl;
+    std::cout << nTest.opcode << nTest.pos << nTest.context << std::endl;
 
     // j[product]
     // Binding the name "foo" to free function foo.
