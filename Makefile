@@ -25,7 +25,7 @@ librpc.a:
 	cd rpclib-master && cmake ./ && make && cp librpc.a ../ && cd ..
 	
 clean:
-	rm -f *.o client server rpclib-master/Makefile rpclib-master/CMakeCache.txt
+	rm -f *.o librpc.a client server rpclib-master/Makefile rpclib-master/CMakeCache.txt
 
 push: clean
 	git add .
