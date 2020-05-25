@@ -27,33 +27,36 @@ void operation::fromString(std::string str){
 
 void modifystr(){
 	switch (this->opcode){
-		case INSERT:{
+		case operation::INSERT:{
 			this->context.insert(this->p, this->text);
-			cstrlen = cstrlen + 1;
+			this->cstrlen = this->cstrlen + 1;
 			break;
 		}
-		case DELETE:{
+		case operation::DELETE:{
 			this->context.erase(this->p, 1);
-			cstrlen = cstrlen - 1;
+			this->cstrlen = this->cstrlen - 1;
 			break;
 		}
 		default:
-			std::count<<"Error operation"<<endl;
+			std::count<<"Error operation"<<std::endl;
 	}
 }
-
-size_t retain(operatin op){
+size_t retain(operation op){
 	switch (op.opcode){
-		case INSERT:{
-			this->pos += 1;
+		case operation::INSERT:{
+			temp = this->pos;
+			temp = temp + 1;
+			this->pos = temp;
 			break;
 		}
-		case DELETE:{
-			this->pos -= 1;
+		case operation::DELETE:{
+			temp = this->pos;
+			temp = temp - 1;
+			this->pos = temp;
 			break;
 		}
 		default:
-			std::count<<"Error operation"<<endl;
+			std::count<<"Error operation"<<std::endl;
 	}
 }
 
@@ -116,11 +119,3 @@ operation* transform(operation op1, operation op2){
 	}
 	return oparrprime;
 }
-
-
-
-
-
-
-
-
