@@ -44,7 +44,6 @@ void client::ReadFromSocket() {
     }
 }
 
-
 /* This function will actively poll 
 *
 */

@@ -14,10 +14,10 @@ class client {
 private:
     boost::asio::io_context service;
     boost::asio::ip::tcp::socket sock;
+
     boost::asio::ip::tcp::iostream stream;
     std::queue<operation> inBoundq; // read thread will operation on this
     std::queue<operation> outBoundq; // write thread will operation on this
-
     // std::lock_guard<std::mutex> lock(qLock);
     std::mutex inqLock;
     std::mutex outqLock;
@@ -27,7 +27,6 @@ private:
     std::thread writeDaemon;
 
     std::string myContext;
-
     void ReadFromSocket();
     void WriteToSocket();
     //void Writehandler(const boost::system::error_code& error);

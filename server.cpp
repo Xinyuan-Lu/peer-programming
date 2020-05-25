@@ -17,6 +17,7 @@ session::session(){
     currentSocket = std::make_shared<boost::asio::ip::tcp::socket>(ioContext);
     isConnected = false;
 };
+
 void session::WriteToClient(){
     while(true){
         std::cout << "write socket, in loop, blocked" << std::endl;
@@ -49,6 +50,7 @@ void session::ReadFromClient() {
         inqLock.unlock();
     }
 };
+
 
 void server::handle_clients_thread(){
     // This is the line where main thread will run on.
