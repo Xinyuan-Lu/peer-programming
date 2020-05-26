@@ -10,7 +10,7 @@
 
 #define LOCKLOGGING(x) do { if( all_debug | lock_debug_enabled) { std::cout << "lock logging: " << x << std::endl; }} while (0)
 #define DEBUG(x) do { if( all_debug |  debugging_enabled) { std::cout << "debug logging: " << x << std::endl; }} while (0)
-
+//#define io_context io_service
 
 bool debugging_enabled = true;
 bool all_debug = true;
