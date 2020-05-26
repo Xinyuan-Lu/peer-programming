@@ -43,11 +43,13 @@ private:
     std::vector<session*> currentConnection;
     void AddToAllPending();
     int listenPort;
+    std::vector<operation> log; 
     //std::vector<std::thread> threads;
 public:
     server(int listenPort);
     void serverHandleRead(session*);
     void handle_clients_thread();
+    void broadcast();
 };
 
 #endif

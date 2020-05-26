@@ -12,12 +12,20 @@
 
 class client {
 private:
+    
     boost::asio::io_context service;
     boost::asio::ip::tcp::socket sock;
 
     boost::asio::ip::tcp::iostream stream;
+
+    int myID;
+
+    // The inboundq can be used as internal buffer
     std::queue<operation> inBoundq; // read thread will operation on this
+
+    // OutBoundq will only have at most 1 element in the queue
     std::queue<operation> outBoundq; // write thread will operation on this
+
     // std::lock_guard<std::mutex> lock(qLock);
     std::mutex inqLock;
     std::mutex outqLock;
@@ -25,14 +33,16 @@ private:
 
     std::thread readDaemon;
     std::thread writeDaemon;
-
+    operation a;
     std::string myContext;
     void ReadFromSocket();
     void WriteToSocket();
+    bool awaiting;
     //void Writehandler(const boost::system::error_code& error);
 public:    // Add to q function
     client(std::string serverAddr, std::string port);
-    bool Insert(std::size_t pos, char c);
+    bool Insert(std::size_t pos, std::string c);
+    bool UponReceive();
     bool Erase(std::size_t pos);
     
     std::string Context();
