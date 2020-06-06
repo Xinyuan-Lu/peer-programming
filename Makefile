@@ -17,18 +17,23 @@ all: test
 
 test: client1 server
 
+
+operation: operation.o testOperation.o
+	$(CC) $? -o $@
+
+util: util.o client.o operation.o
+	$(CC) $? -o $@ 
+
 client1: client.o operation.o testClient1.o
 	$(CC) $? -o $@ 
 
 # client2: client.o operation.o testClient2.o
 # 	$(CC) $? -o $@
 
-server: server.o operation.o testServer.o
+server: server.o operation.o
 	$(CC) $? -o $@
 
-# librpc.a:
-# 	cd rpclib-master && cmake ./ && make && cp librpc.a ../ && cd ..
-	
+
 clean:
 	rm -f *.o client1 client2 server
 	# rm -f *.o librpc.a client server rpclib-master/Makefile rpclib-master/CMakeCache.txt

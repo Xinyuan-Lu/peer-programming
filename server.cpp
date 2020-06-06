@@ -7,13 +7,14 @@
 #include <chrono>
 #include <thread>
 #include "server.h"
+#include "operation.h"
 
 #define LOCKLOGGING(x) do { if( all_debug | lock_debug_enabled) { std::cout << "lock logging: " << x << std::endl; }} while (0)
 #define DEBUG(x) do { if( all_debug |  debugging_enabled) { std::cout << "debug logging: " << x << std::endl; }} while (0)
 //#define io_context io_service
 
 bool debugging_enabled = true;
-bool all_debug = true;
+bool all_debug = false;
 bool lock_debug_enabled = false;
 
 
@@ -27,13 +28,11 @@ session::session(){
 
 void session::WriteToClient(){
     while(true){
-        DEBUG( "write socket, in loop, blocked");
-        //std::cout << "write socket, in loop, blocked" << std::endl;
         if (outBoundq.empty()){
-            DEBUG("");
             std::this_thread::sleep_for(std::chrono::milliseconds(2));
             continue;
         }
+        DEBUG("Write to client");
         operation oper1 = outBoundq.front();
         LOCKLOGGING("outqLock locked");
         outqLock.lock();
@@ -52,7 +51,6 @@ void session::ReadFromClient() {
     while(true){
 
         std::cout << "reading from socket, in loop, blocked" << std::endl;
-        // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         // this will read until a \n terminated string
         read_until(*currentSocket, response, '\n', error);
         std::string line;
@@ -74,34 +72,37 @@ void server::handle_clients_thread(){
     ip::tcp::acceptor acceptor(service_, ip::tcp::endpoint(ip::tcp::v4(), listenPort));
     std::cout << "In " << std::endl;
     while(true){
-        // Not sure if the new session will be automatically destroyed or not.
         session* newSession = new session();
         acceptor.accept(*(newSession->currentSocket));
         currentConnection.push_back(newSession);
         DEBUG("success, new client logged in");
-        //std::cout << "success, new client logged in" << std::endl;
         newSession->writeDaemon = std::thread([=]{newSession->WriteToClient();});
         newSession->readDaemon = std::thread([=]{newSession->ReadFromClient();});
     }
 }
 
 void server::broadcast(){
+    //std::cout << "Here" << std::endl;
     while(true){
         for (auto sessionPtr : currentConnection) {
             if (sessionPtr->inBoundq.empty()){
                 continue;
             }
-            
-            auto oper = sessionPtr->inBoundq.front();
-            sessionPtr->inqLock.lock();
             LOCKLOGGING("inqLock locked");
+            sessionPtr->inqLock.lock();
+            auto oper = sessionPtr->inBoundq.front();
             sessionPtr->inBoundq.pop();
             sessionPtr->inqLock.unlock();
             LOCKLOGGING("inqLock released");
-            oper.index = -1;
+            //oper.index = -1;
+            transformation trans;
+            for (decltype(historyLog.size()) i = oper.versionNumber + 1; i < historyLog.size(); i++) {
+                oper = trans.transform(oper, historyLog[i])[0];
+            }
+            oper.versionNumber = historyLog.size();
+            historyLog.push_back(oper);
+            context = trans.applyTransform(oper, context);
 
-            // Need to put things together
-            // log.emplace_back(oper);
             for (auto toSessionPtr : currentConnection){
                 toSessionPtr->outqLock.lock();
                 LOCKLOGGING("outqLock locked");
@@ -113,18 +114,23 @@ void server::broadcast(){
     }
 }
 
-server::server(int listenPort):listenPort(listenPort){
-    std::thread([=]{broadcast();});
+server::server(int listenPort):listenPort(listenPort){}
+
+void server::run(){
+    std::thread th = std::thread([=]{broadcast();});
+    handle_clients_thread();
+    th.join();
 }
-// //server::server(int listenPort):listenPort(listenPort){;}
-// int main(int argc, char *argv[]) {
-//     std::cout << "This is server" << std::endl;
-//     server newServer(8080);
-//     //This is a forloop, blocked
-//     // ==> new thread -> prepare for broadcast and internal management. // This is a blocking thread, for-loop.
-//     newServer.handle_clients_thread();
-//     std::cout << "done\n";
-//     while(true){
-//         ;
-//     }
-// }
+
+int main() {
+
+    //assert(argc == 1);
+    //assert(strlen(argv[0]) > 0);
+
+    std::cout << "This is server, in server file" << std::endl;
+    server newServer(8080);
+    newServer.run();
+    while(true){
+        ;
+    }
+}
