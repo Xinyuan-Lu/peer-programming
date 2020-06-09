@@ -7,7 +7,7 @@ endif
 
 .PHONY: all clean push
 
-CC = g++ -Wall -Wextra -O2 -std=c++14 $(OSCCFLAG)
+CC = g++ -Wall -Wextra -O0 -std=c++14 -g $(OSCCFLAG)
 
 .SUFFIXES: .cpp
 .cpp.o:

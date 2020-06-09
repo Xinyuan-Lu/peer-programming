@@ -5,7 +5,7 @@
 #include <chrono>
 #include <thread>
 
-#define NCLIENT 10
+#define NCLIENT 100
 
 // void forLoop(client* cli){;
 //     for(int i = 0; i < 100; i++){
@@ -13,10 +13,6 @@
 //         cli->Insert((size_t) rand()%int(totalLen), std::string(1, rand() % 26 + 'A'));
 //     }
 // }
-
-
-
-
 
 int main(int argc, char** argv){
     srand(time(NULL));
@@ -35,15 +31,15 @@ int main(int argc, char** argv){
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
     
-    for (int i = 0; i < 10; i++) {
-        //std::this_thread::sleep_for(std::chrono::milliseconds(2));
-        // size_t totalLen1 = testClient1->Context().size() + 1;
-        // size_t totalLen2 = testClient2->Context().size() + 1;
-        // testClient1->Insert((size_t) rand()%int(totalLen1), std::string(1, rand() % 26 + 'A'));
-        // testClient2->Insert((size_t) rand()%int(totalLen2), std::string(1, rand() % 26 + 'A'));
+    for (int i = 0; i < 10000; i++) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
         for(int j = 0; j < NCLIENT; j++){
+
             size_t totalLen = clients[j]->Context().size() + 1;
-            clients[j]->Insert((size_t) rand()%int(totalLen), std::string(1, rand() % 26 + 'A'));
+            size_t pos = (size_t) rand()%int(totalLen);
+            std::string insertString = std::string(1, rand() % 26 + 'A');
+            // std::cout << "client: " << j <<  " version: " << clients[j]->localVersionNumber << " " << clients[j]->context << " " << pos << " " << insertString  << std::endl;
+            clients[j]->Insert(pos, insertString);
         }
 
     }

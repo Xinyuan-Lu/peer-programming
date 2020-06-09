@@ -13,7 +13,7 @@
 #define DEBUG(x) do { if( all_debug |  debugging_enabled) { std::cout << "debug logging: " << x << std::endl; }} while (0)
 //#define io_context io_service
 
-bool debugging_enabled = true;
+bool debugging_enabled = false;
 bool all_debug = false;
 bool lock_debug_enabled = false;
 
@@ -49,7 +49,6 @@ void session::ReadFromClient() {
     streambuf response;
     std::istream in(&response);
     while(true){
-
         std::cout << "reading from socket, in loop, blocked" << std::endl;
         // this will read until a \n terminated string
         read_until(*currentSocket, response, '\n', error);
@@ -74,6 +73,7 @@ void server::handle_clients_thread(){
     while(true){
         session* newSession = new session();
         acceptor.accept(*(newSession->currentSocket));
+
         currentConnection.push_back(newSession);
         DEBUG("success, new client logged in");
         newSession->writeDaemon = std::thread([=]{newSession->WriteToClient();});
@@ -95,13 +95,12 @@ void server::broadcast(){
             sessionPtr->inqLock.unlock();
             LOCKLOGGING("inqLock released");
             //oper.index = -1;
-            transformation trans;
-            for (decltype(historyLog.size()) i = oper.versionNumber + 1; i < historyLog.size(); i++) {
-                oper = trans.transform(oper, historyLog[i])[0];
+            for (decltype(historyLog.size()) i = oper.versionNumber; i < historyLog.size(); i++) {
+                oper = operation::transform(oper, historyLog[i])[0];
             }
-            oper.versionNumber = historyLog.size();
             historyLog.push_back(oper);
-            context = trans.applyTransform(oper, context);
+            oper.versionNumber = historyLog.size();
+            context = oper.applyTransform(context);
 
             for (auto toSessionPtr : currentConnection){
                 toSessionPtr->outqLock.lock();
@@ -114,7 +113,11 @@ void server::broadcast(){
     }
 }
 
-server::server(int listenPort):listenPort(listenPort){}
+server::server(int listenPort):listenPort(listenPort){
+    //operation newOP(0, 0);
+    
+    //this->historyLog.push_back(operation());
+}
 
 void server::run(){
     std::thread th = std::thread([=]{broadcast();});
@@ -126,7 +129,6 @@ int main() {
 
     //assert(argc == 1);
     //assert(strlen(argv[0]) > 0);
-
     std::cout << "This is server, in server file" << std::endl;
     server newServer(8080);
     newServer.run();

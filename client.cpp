@@ -17,7 +17,7 @@ using namespace boost::asio;
 #define DEBUG(x) do { if( all_debug |  debugging_enabled) { std::cout << "debug logging " << this->myID  << " "<< x << std::endl << std::endl; }} while (0)
 //#define io_context io_service
 
-bool debugging_enabled = true;
+bool debugging_enabled = false;
 bool all_debug = false;
 bool lock_debug_enabled = false;
 
@@ -27,6 +27,7 @@ client::client(std::string serverAddr, std::string port): sock(service){
     this->awaiting = false;
     srand(time(NULL));
     this->myID = rand();
+    this->localVersionNumber = 0;
 }
 void client::run(){
     ip::tcp::resolver r(service);
@@ -73,54 +74,81 @@ void client::WriteToSocket() {
         oper1.versionNumber = localVersionNumber;
         awaiting = true;
         outqLock.unlock();
+        //DEBUG()
+        
         std::string str1 = oper1.toString();
+        std::cout << "client: " << myID << " " << str1 << std::endl;
         sock.send(buffer(str1));
     }
 }
-
 
 bool client::UponReceive(operation op){
     DEBUG("Received new operation processing");
     char x[1000];
 
-    sprintf(x, "sender ID: %d, myID: %d", op.senderID, myID);
+    sprintf(x, "sender ID: %d, myID: %d, %s", op.senderID, myID, op.toString().c_str());
     DEBUG(x);
     if (op.senderID == myID){
         DEBUG("My Operation");
-        outqLock.lock();        
+        outqLock.lock();
+        localVersionNumber = op.versionNumber;    
         outBoundq.pop_front();
         awaiting = false;
         outqLock.unlock();
         return true;
     }
     DEBUG("Start transforming");
-    transformation trans;
+
     outqLock.lock();
     //DEBUG("Start transforming1");
+    localVersionNumber = op.versionNumber;
     for (auto it = outBoundq.begin(); it != outBoundq.end(); ++it) {
         //DEBUG("Start transforming2");
-        auto operprime = trans.transform(*it, op);
+        auto operprime = operation::transform(*it, op);
         *it = operprime[0];
         op = operprime[1];
     }
     //DEBUG("Start transforming3");
-    context = trans.applyTransform(op, context);
-    //DEBUG("Start transforming4");
-    localVersionNumber = op.versionNumber;
+    //contextLock.lock()
+    context = op.applyTransform(context);
+    //DEBUG("Start transforming4");    
+    std::cout << "Current VerNum is: " << localVersionNumber << std::endl;
     outqLock.unlock();
     DEBUG("Finished Editting");
     return true;
 }
+
+
 bool client::Insert(std::size_t pos, std::string c){
-    transformation trans;
+    //DEBUG(std::string("Insert  ").append(std::to_string(myID)));
     outqLock.lock();
-    operation toTransform(INSERT, pos, c, 0, myID);
-    DEBUG(std::string("Insert  ").append(std::to_string(myID)));
-    context = trans.applyTransform(toTransform, context);
-    outBoundq.push_back(toTransform);
+    operation insertOP(myID, context.size(), pos, c);
+    context = insertOP.applyTransform(context);
+    if(outBoundq.size() <= 1){
+        outBoundq.push_back(insertOP);
+    }else{
+        operation newOp = *(outBoundq.rbegin()->compose(insertOP));
+        outBoundq.pop_back();
+        outBoundq.push_back(newOp);
+    }
     outqLock.unlock();
     return true;
 }
+
+bool client::Delete(std::size_t pos, std::size_t delLength){
+    // operation delOP(myID, context.size(), pos, delLength);
+    // outqLock.lock();
+    // //DEBUG(std::string("Insert  ").append(std::to_string(myID)));
+    // if(outBoundq.size() == 1){
+    //     outBoundq.push_back(delOP);
+    // }
+    // operation newOp = *(outBoundq.rbegin()->compose(delOP));
+    // outBoundq.pop_back();
+    // outBoundq.push_back(newOp);
+    // outqLock.unlock();
+    return true;
+}
+
 std::string client::Context(){
     return context;
 }

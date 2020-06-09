@@ -31,9 +31,9 @@ public:
     std::deque<operation> outBoundq; // write thread will operation on this
 
     // std::lock_guard<std::mutex> lock(qLock);
-    std::mutex inqLock;
+    //std::mutex inqLock;
     std::mutex outqLock;
-    std::mutex contextLock;
+    //std::mutex contextLock;
     // std::mutex contextLock;
 
     std::thread readDaemon;
@@ -47,6 +47,7 @@ public:
     // Add to q function
     client(std::string serverAddr, std::string port);
     bool Insert(std::size_t pos, std::string c);
+    bool Delete(std::size_t pos, std::size_t delLength);
     bool UponReceive(operation opr);
     bool Erase(std::size_t pos);
     void run();

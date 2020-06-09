@@ -37,6 +37,7 @@ public:
     std::vector<session*> currentConnection;
     std::vector<operation> historyLog;
     std::string context;
+    std::mutex sessionLock;
     int listenPort;
     
     server(int listenPort);
