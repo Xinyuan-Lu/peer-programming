@@ -55,7 +55,6 @@ public:
         Static member funcion
     */
     static std::vector<operation> transform(operation& op1, operation& op2);
-    
-    
+    // static bool check(operation op);
 };
 #endif

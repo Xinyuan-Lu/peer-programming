@@ -84,6 +84,9 @@ void server::handle_clients_thread(){
 void server::broadcast(){
     //std::cout << "Here" << std::endl;
     while(true){
+        //lock();
+        //int vectorSize = currentConnection.size();
+        //unlock();
         for (auto sessionPtr : currentConnection) {
             if (sessionPtr->inBoundq.empty()){
                 continue;

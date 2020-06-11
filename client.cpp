@@ -13,7 +13,7 @@
 
 using namespace boost::asio;
 
-#define LOCKLOGGING(x) do { if( all_debug | lock_debug_enabled) { std::cout << "lock logging: " << x << std::endl; }} while (0)
+#define LOCKLOGGING(x) do { if( all_debug | lock_debug_enabled) { std::cout << this->myID << "lock logging: " << x << std::endl; }} while (0)
 #define DEBUG(x) do { if( all_debug |  debugging_enabled) { std::cout << "debug logging " << this->myID  << " "<< x << std::endl << std::endl; }} while (0)
 //#define io_context io_service
 
@@ -36,7 +36,7 @@ void client::run(){
     ip::tcp::resolver::results_type endpoints = resolver.resolve(query);
     
     connect(sock, endpoints);
-    DEBUG("Connected");
+    // DEBUG("Connected");
     // We will have two bounded thread that will have operation on readQ and writeQ;
     readDaemon = std::thread([=]{ReadFromSocket();});
     writeDaemon = std::thread([=]{WriteToSocket();});
@@ -58,6 +58,7 @@ void client::ReadFromSocket() {
         std::string line;
         std::getline(in, line);
         operation incomingOper(line);
+        // std::cout << "line = " << line << std::endl;
         UponReceive(incomingOper);
     }
 }
@@ -70,38 +71,48 @@ void client::WriteToSocket() {
             continue;
         }
         outqLock.lock();
+        LOCKLOGGING("write got lock");
         operation oper1 = outBoundq.front();
         oper1.versionNumber = localVersionNumber;
         awaiting = true;
+        //LOCKLOGGING("write unlock");
         outqLock.unlock();
         //DEBUG()
         
         std::string str1 = oper1.toString();
-        std::cout << "client: " << myID << " " << str1 << std::endl;
+        //std::cout << "client: " << myID << " " << str1 << std::endl;
         sock.send(buffer(str1));
     }
 }
 
 bool client::UponReceive(operation op){
-    DEBUG("Received new operation processing");
-    char x[1000];
+    //DEBUG("Received new operation processing");
+    //char x[100000];
 
-    sprintf(x, "sender ID: %d, myID: %d, %s", op.senderID, myID, op.toString().c_str());
-    DEBUG(x);
+    //sprintf(x, "sender ID: %d, myID: %d, %s", op.senderID, myID, op.toString().c_str());
+    DEBUG(op.toString());
     if (op.senderID == myID){
-        DEBUG("My Operation");
+        //DEBUG("My Operation");
         outqLock.lock();
+        //LOCKLOGGING("myID got lock");
         localVersionNumber = op.versionNumber;    
         outBoundq.pop_front();
         awaiting = false;
+        //LOCKLOGGING("myID unlock");
         outqLock.unlock();
         return true;
     }
-    DEBUG("Start transforming");
+    //DEBUG("Start transforming");
+
+    //sprintf(x, "sender ID: %d, myID: %d, %s", op.senderID, myID, op.toString().c_str());
+    DEBUG(op.toString());
 
     outqLock.lock();
+    //LOCKLOGGING("UponReveice got lock");
     //DEBUG("Start transforming1");
     localVersionNumber = op.versionNumber;
+    //sprintf(x, "sender ID: %d, myID: %d, %s", op.senderID, myID, op.toString().c_str());
+    DEBUG(op.toString());
     for (auto it = outBoundq.begin(); it != outBoundq.end(); ++it) {
         //DEBUG("Start transforming2");
         auto operprime = operation::transform(*it, op);
@@ -113,6 +124,7 @@ bool client::UponReceive(operation op){
     context = op.applyTransform(context);
     //DEBUG("Start transforming4");    
     std::cout << "Current VerNum is: " << localVersionNumber << std::endl;
+    //LOCKLOGGING("UponReveice unlock");
     outqLock.unlock();
     DEBUG("Finished Editting");
     return true;
@@ -121,7 +133,9 @@ bool client::UponReceive(operation op){
 
 bool client::Insert(std::size_t pos, std::string c){
     //DEBUG(std::string("Insert  ").append(std::to_string(myID)));
-    outqLock.lock();
+    
+    //outqLock.lock();
+    LOCKLOGGING("insert got lock");
     operation insertOP(myID, context.size(), pos, c);
     context = insertOP.applyTransform(context);
     if(outBoundq.size() <= 1){
@@ -131,21 +145,29 @@ bool client::Insert(std::size_t pos, std::string c){
         outBoundq.pop_back();
         outBoundq.push_back(newOp);
     }
-    outqLock.unlock();
+    //LOCKLOGGING("insert unlock");
+    //outqLock.unlock();
     return true;
 }
 
 bool client::Delete(std::size_t pos, std::size_t delLength){
-    // operation delOP(myID, context.size(), pos, delLength);
-    // outqLock.lock();
-    // //DEBUG(std::string("Insert  ").append(std::to_string(myID)));
-    // if(outBoundq.size() == 1){
-    //     outBoundq.push_back(delOP);
+    //outqLock.lock();
+    // if (pos + delLength > context.size()){
+    //     outqLock.unlock();
+    //     return true;
     // }
-    // operation newOp = *(outBoundq.rbegin()->compose(delOP));
-    // outBoundq.pop_back();
-    // outBoundq.push_back(newOp);
-    // outqLock.unlock();
+    operation delOP(myID, context.size(), pos, delLength);
+    //DEBUG(std::string("Insert  ").append(std::to_string(myID)));
+    context = delOP.applyTransform(context);
+    if(outBoundq.size() <= 1){
+        outBoundq.push_back(delOP);
+    }else{
+        operation newOp = *(outBoundq.rbegin()->compose(delOP));
+        
+        outBoundq.pop_back();
+        outBoundq.push_back(newOp);
+    }
+    //outqLock.unlock();
     return true;
 }
 

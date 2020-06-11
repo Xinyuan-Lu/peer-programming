@@ -4,6 +4,8 @@
 
 using json = nlohmann::json;
 
+static bool check(operation op);
+
 void to_json(json& j, const subop& p) {
     j = json{{"opcode", p.opcode}, {"offset", p.offset}, {"text", p.text}};
 }
@@ -88,6 +90,9 @@ operation::operation(int senderID, size_t baseLength, size_t pos, size_t deleteL
 
 // Assume op1, op2, $$context$$
 std::vector<operation> operation::transform(operation& op1, operation& op2){
+	
+	check(op1);
+	check(op2);
 	
 	// Both operation take place in the same edit space.
 	assert(op1.baseLength == op2.baseLength);
@@ -187,6 +192,8 @@ std::vector<operation> operation::transform(operation& op1, operation& op2){
 			assert(false);
 		}
 	}
+	check(operprime[0]);
+	check(operprime[1]);
 	return operprime;
 }
 
@@ -233,7 +240,7 @@ void operation::insert(subop &operand) {
 	if (!ops.empty() && ops.rbegin()->opcode == INSERT)	{
 		ops.rbegin()->text += operand.text;
 	} else if (!ops.empty() && ops.rbegin()->opcode == DELETE) {
-		if ((ops.rbegin() + 1)->opcode == INSERT) {
+		if (ops.size() > 1 && (ops.rbegin() + 1)->opcode == INSERT) {
 			(ops.rbegin() + 1)->text += operand.text;
 		} else {
 			ops.push_back(*ops.rbegin());
@@ -264,6 +271,8 @@ void operation::retain(subop& operand){
 // this-> is the procedding operation and op is the following op
 // return value will be a smart pointer of operation.
 std::shared_ptr<operation> operation::compose(operation& op){
+	
+	check(op);
 	//Sender ID and my ID should be the same if called correctly
 	assert(op.senderID == this->senderID);
 	// The base length of the second operation has to be the target length of the first operation
@@ -307,6 +316,7 @@ std::shared_ptr<operation> operation::compose(operation& op){
 			}	
 		}else if (ops1[i1].opcode == INSERT && ops2[i2].opcode == DELETE){
 			if (ops1[i1].text.length() > ops2[i2].offset){
+				
 				size_t cutlength = ops1[i1].text.length() - ops2[i2].offset;
 				ops1[i1].text = ops1[i1].text.substr(ops2[i2].offset, cutlength);
 				i2++;
@@ -354,7 +364,43 @@ std::shared_ptr<operation> operation::compose(operation& op){
 			assert(false);
 		}		
 	}
+	check(*newOp);
 	return newOp;
+}
+
+static bool check(operation op) {
+	size_t base = 0;
+	size_t target = 0;
+	for(auto sub: op.ops){
+		switch (sub.opcode)
+		{
+		case INSERT:
+			//assert(sub.offset == sub.text.size());
+			target +=  sub.text.length();
+			break;
+		case DELETE:
+			base += sub.offset;
+			break;
+		case RETAIN:
+			base += sub.offset;
+			target += sub.offset;
+			break;
+		default:
+			throw std::runtime_error("No such opcode");
+		}
+
+	}
+	if(base != op.baseLength){
+		std::cout << op.toString()<< std::endl;
+		throw std::runtime_error("Base length wrong");
+		return false;
+	}
+	if(target != op.targetLength){
+		std::cout << op.toString()<< std::endl;
+		throw std::runtime_error("target length wrong");
+		return false;
+	}
+	return true;
 }
 
 // std::vector<operation> operation::transform(operation& op1, operation& op2){
