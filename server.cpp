@@ -23,7 +23,8 @@ using namespace boost::asio;
 session::session(){
     // This is a session constructor, make the socket to be shared.
     currentSocket = std::make_shared<boost::asio::ip::tcp::socket>(ioContext);
-    isConnected = false;
+    ready = false;
+
 };
 
 void session::WriteToClient(){
@@ -40,7 +41,12 @@ void session::WriteToClient(){
         outqLock.unlock();
         LOCKLOGGING("outqLock released");
         std::string str1 = oper1.toString();
-        currentSocket->send(buffer(str1));
+        try {
+            currentSocket->send(buffer(str1));
+        } catch(const std::runtime_error& e) {
+            return;
+        }
+        
     }
 };
 
@@ -51,12 +57,21 @@ void session::ReadFromClient() {
     while(true){
         std::cout << "reading from socket, in loop, blocked" << std::endl;
         // this will read until a \n terminated string
-        read_until(*currentSocket, response, '\n', error);
+        try{
+            read_until(*currentSocket, response, '\n', error);
+        } catch(const std::runtime_error& e){
+            return;
+        }
         std::string line;
         LOCKLOGGING("inqLock locked");
         inqLock.lock();
         std::getline(in, line);
-        inBoundq.emplace(line);
+        try{
+            inBoundq.emplace(line);
+        }catch(const std::exception& e){
+            return;
+        }
+        
         //std::cout << line << std::endl;
         //Need to put together
         DEBUG("conversion success");
@@ -73,8 +88,12 @@ void server::handle_clients_thread(){
     while(true){
         session* newSession = new session();
         acceptor.accept(*(newSession->currentSocket));
-
+        sessionLock.lock();
+        if(!context.size()){
+            newSession->ready = true;
+        }
         currentConnection.push_back(newSession);
+        sessionLock.unlock();
         DEBUG("success, new client logged in");
         newSession->writeDaemon = std::thread([=]{newSession->WriteToClient();});
         newSession->readDaemon = std::thread([=]{newSession->ReadFromClient();});
@@ -84,10 +103,24 @@ void server::handle_clients_thread(){
 void server::broadcast(){
     //std::cout << "Here" << std::endl;
     while(true){
-        //lock();
-        //int vectorSize = currentConnection.size();
-        //unlock();
-        for (auto sessionPtr : currentConnection) {
+        sessionLock.lock();
+        int vectorSize = currentConnection.size();
+        sessionLock.unlock();
+        for (int i = 0; i < vectorSize; i++){
+            auto sessionPtr = currentConnection[i];
+            if (!sessionPtr->ready) {
+                if (context.size()) {                    
+                    operation op(-1, 0, 0, context);
+                    op.versionNumber = historyLog.size();
+                    sessionPtr->outqLock.lock();
+                    sessionPtr->outBoundq.push(op);
+                    sessionPtr->outqLock.unlock();
+                }
+                sessionPtr->ready = true;
+            }
+        }
+        for (int i = 0; i < vectorSize; ++i){
+            auto sessionPtr = currentConnection[i];
             if (sessionPtr->inBoundq.empty()){
                 continue;
             }
@@ -97,14 +130,12 @@ void server::broadcast(){
             sessionPtr->inBoundq.pop();
             sessionPtr->inqLock.unlock();
             LOCKLOGGING("inqLock released");
-            //oper.index = -1;
             for (decltype(historyLog.size()) i = oper.versionNumber; i < historyLog.size(); i++) {
                 oper = operation::transform(oper, historyLog[i])[0];
             }
             historyLog.push_back(oper);
             oper.versionNumber = historyLog.size();
             context = oper.applyTransform(context);
-
             for (auto toSessionPtr : currentConnection){
                 toSessionPtr->outqLock.lock();
                 LOCKLOGGING("outqLock locked");
@@ -129,11 +160,10 @@ void server::run(){
 }
 
 int main() {
-
     //assert(argc == 1);
     //assert(strlen(argv[0]) > 0);
     std::cout << "This is server, in server file" << std::endl;
-    server newServer(8080);
+    server newServer(51790);
     newServer.run();
     while(true){
         ;

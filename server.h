@@ -25,7 +25,7 @@ public:
     std::thread writeDaemon;
     void ReadFromClient();
     void WriteToClient();
-    bool isConnected;
+    bool ready;
     int clientID;
     session();
 };
@@ -39,7 +39,6 @@ public:
     std::string context;
     std::mutex sessionLock;
     int listenPort;
-    
     server(int listenPort);
     void serverHandleRead(session*);
     void handle_clients_thread();
@@ -49,3 +48,4 @@ public:
 };
 
 #endif
+                    
