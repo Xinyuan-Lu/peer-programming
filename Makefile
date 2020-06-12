@@ -8,6 +8,7 @@ endif
 .PHONY: all clean push
 
 CC = g++ -Wall -Wextra -O0 -std=c++14 -g $(OSCCFLAG)
+CCC =  g++ -Wall -Wextra -O0 -std=c++14 -g $(OSCCFLAG) -lncurses
 
 .SUFFIXES: .cpp
 .cpp.o:
@@ -16,6 +17,10 @@ CC = g++ -Wall -Wextra -O0 -std=c++14 -g $(OSCCFLAG)
 all: test
 
 test: client1 server
+
+
+console: operation.o client.o client_console.o
+	$(CCC) $? -o $@ 
 
 
 operation: operation.o testOperation.o

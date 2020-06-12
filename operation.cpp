@@ -198,7 +198,7 @@ std::vector<operation> operation::transform(operation& op1, operation& op2){
 }
 
 std::string operation::applyTransform(std::string context){
-	std::cout << context.size() << " " << baseLength << std::endl;
+	//std::cout << context.size() << " " << baseLength << std::endl;
 	assert(context.size() == baseLength);	
 	size_t strIndex = 0;
 	std::string newContext;

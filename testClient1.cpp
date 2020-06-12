@@ -5,7 +5,7 @@
 #include <chrono>
 #include <thread>
 
-#define NCLIENT 5
+#define NCLIENT 100
 int main(int argc, char** argv){
     srand(time(NULL));
     client *clients[NCLIENT];
@@ -16,7 +16,7 @@ int main(int argc, char** argv){
         threadVector.emplace_back([=]{clients[i]->run();});
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < 10000; i++) {
         for(int j = 0; j < NCLIENT; j++){
             clients[j]->outqLock.lock();
             size_t totalLen = clients[j]->Context().size() + 1;
@@ -31,39 +31,17 @@ int main(int argc, char** argv){
             clients[j]->outqLock.unlock();
         }
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-    for (int i = 0; i < NCLIENT; i++){
-        std::cout << clients[i]->Context() << std::endl;
-    }    
-    int a[NCLIENT][26] = {0};
-    for(int i = 0; i < NCLIENT; i++){
-        for (char c : clients[i]->Context()) {
-            a[i][c - 'A']++;
-        }
-    }
-    for(int i = 0; i < 26; i++){
-        for(int j = 0; j < NCLIENT - 1; j++){
-            assert(a[j][i] == a[j + 1][i]);
-        }
-    }
-    std::cout << "checked" << std::endl;
-
     std::this_thread::sleep_for(std::chrono::milliseconds(10000));
-    for (int i = 0; i < NCLIENT; i++){
+
+    for(int i = 0; i < NCLIENT-1; i++){
         std::cout << clients[i]->Context() << std::endl;
-    }    
-    for(int i = 0; i < NCLIENT; i++){
-        for (char c : clients[i]->Context()) {
-            a[i][c - 'A']++;
-        }
+        assert(clients[i]->Context() == clients[i+1]->Context());
     }
-    for(int i = 0; i < 26; i++){
-        for(int j = 0; j < NCLIENT - 1; j++){
-            assert(a[j][i] == a[j + 1][i]);
-        }
-    }
+        
+
     std::cout << "checked" << std::endl;
+
+    
     for(int i = 0; i < NCLIENT; i++){
         threadVector[i].join();
     }

@@ -28,8 +28,6 @@ void mainloop(client *cli) {
 }
 
 
-
-
 int main() {
     client *cli = new client("127.0.0.1", "8080");
     std::thread th([=]{cli->run();});

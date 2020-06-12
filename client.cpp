@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <ctime>
 
+
 using namespace boost::asio;
 
 #define LOCKLOGGING(x) do { if( all_debug | lock_debug_enabled) { std::cout << this->myID << "lock logging: " << x << std::endl; }} while (0)
@@ -43,7 +44,7 @@ void client::run(){
     
     while (true) {
         std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-        std::cout << "Main, non_blocking" << std::endl;
+        //std::cout << "Main, non_blocking" << std::endl;
     }
     readDaemon.join();
     writeDaemon.join();
@@ -123,7 +124,7 @@ bool client::UponReceive(operation op){
     //contextLock.lock()
     context = op.applyTransform(context);
     //DEBUG("Start transforming4");    
-    std::cout << "Current VerNum is: " << localVersionNumber << std::endl;
+    //std::cout << "Current VerNum is: " << localVersionNumber << std::endl;
     //LOCKLOGGING("UponReveice unlock");
     outqLock.unlock();
     DEBUG("Finished Editting");
